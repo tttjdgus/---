@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>급여 계산기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-row">
+        <h1>급여 계산기</h1>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="다크모드 전환" title="다크모드 전환">
+          <span class="theme-icon theme-icon-moon" aria-hidden="true">🌙</span>
+          <span class="theme-icon theme-icon-sun" aria-hidden="true">☀️</span>
+        </button>
+      </div>
+      <p class="subtitle">근무 일정을 달력에 기록하면 급여가 자동 계산됩니다</p>
+    </header>
+
+    <nav class="tab-nav" role="tablist" aria-label="급여 계산기 유형">
+      <button type="button" class="tab-btn active" role="tab" id="tabBtnParttime" aria-selected="true" aria-controls="tabParttime" data-tab="parttime">아르바이트</button>
+      <button type="button" class="tab-btn" role="tab" id="tabBtnEmployee" aria-selected="false" aria-controls="tabEmployee" data-tab="employee">직장인</button>
+    </nav>
+
+    <main id="tabParttime" class="tab-panel active" role="tabpanel" aria-labelledby="tabBtnParttime">
+      <!-- 알바 탭 -->
+      <section class="card job-bar">
+        <div class="job-nav">
+          <div class="job-tabs" id="jobTabs" role="tablist" aria-label="알바 목록"></div>
+          <button type="button" class="add-job-btn" id="addJobBtn" title="알바 추가">+ 알바</button>
+        </div>
+      </section>
+
+      <!-- 시급 설정 -->
+      <section class="card">
+        <h2 class="section-title">알바 설정</h2>
+        <div class="input-group">
+          <label for="jobName">알바 이름</label>
+          <input type="text" id="jobName" placeholder="예: 카페, 편의점" maxlength="20">
+        </div>
+        <div class="input-group">
+          <label for="hourlyWage">시급 (원)</label>
+          <input type="number" id="hourlyWage" value="10320" min="0" step="10" inputmode="numeric">
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="autoMinWage" checked>
+          <span>올해 최저시급 자동 적용 (<span id="minWageLabel">2026년 10,320원</span>)</span>
+        </label>
+      </section>
+
+      <!-- 근무시간 입력 -->
+      <section class="card">
+        <h2 class="section-title">기본 근무시간</h2>
+        <div class="time-row">
+          <div class="input-group">
+            <label for="startTime">출근 (24h)</label>
+            <input type="text" class="time-input-24" id="startTime" value="09:00" placeholder="09:00" inputmode="numeric" maxlength="5" autocomplete="off">
+          </div>
+          <span class="time-sep">~</span>
+          <div class="input-group">
+            <label for="endTime">퇴근 (24h)</label>
+            <input type="text" class="time-input-24" id="endTime" value="18:00" placeholder="18:00" inputmode="numeric" maxlength="5" autocomplete="off">
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="breakMinutes">휴게시간 (분)</label>
+          <input type="number" id="breakMinutes" value="60" min="0" step="5" inputmode="numeric">
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="autoBreak" checked>
+          <span>휴게시간 자동 차감 (4h↑ 30분, 8h↑ 1시간)</span>
+        </label>
+        <p class="hint" id="defaultHoursHint">실 근무: 8시간</p>
+      </section>
+
+      <!-- 색상 설정 -->
+      <section class="card collapsible">
+        <button type="button" class="collapse-toggle" id="colorToggle" aria-expanded="false">
+          <h2 class="section-title">색상 설정</h2>
+          <span class="collapse-icon">▼</span>
+        </button>
+        <div class="collapse-body" id="colorPanel" hidden>
+          <div class="color-grid">
+            <label class="color-item">
+              <span>출근</span>
+              <input type="color" id="colorWork" value="#4f46e5">
+            </label>
+            <label class="color-item">
+              <span>휴무</span>
+              <input type="color" id="colorOff" value="#e5e7eb">
+            </label>
+            <label class="color-item">
+              <span>야간포함</span>
+              <input type="color" id="colorNight" value="#7c3aed">
+            </label>
+            <label class="color-item">
+              <span>연장포함</span>
+              <input type="color" id="colorOvertime" value="#ea580c">
+            </label>
+            <label class="color-item">
+              <span>배경</span>
+              <input type="color" id="colorBg" value="#f5f6f8">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 달력 -->
+      <section class="card calendar-section">
+        <div class="calendar-header">
+          <button type="button" class="nav-btn" id="prevMonth" aria-label="이전 달">‹</button>
+          <h2 class="calendar-title" id="calendarTitle">2026년 6월</h2>
+          <button type="button" class="nav-btn" id="nextMonth" aria-label="다음 달">›</button>
+        </div>
+        <div class="calendar-actions">
+          <button type="button" class="copy-pattern-btn" id="copyPatternBtn">요일 패턴 → 다음달 복사</button>
+          <button type="button" class="reset-month-btn" id="resetMonthBtn">출근 초기화</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-legend">
+          <span><i class="dot work"></i>출근</span>
+          <span><i class="dot off"></i>휴무</span>
+          <span><i class="dot night"></i>야간</span>
+          <span><i class="dot overtime"></i>연장</span>
+          <span><i class="dot holiday-work"></i>공휴일 출근</span>
+        </div>
+      </section>
+
+      <!-- 선택 날짜 상세 -->
+      <section class="card day-detail" id="dayDetail" hidden>
+        <h2 class="section-title" id="dayDetailTitle">6월 15일 (월)</h2>
+        <label class="checkbox-row">
+          <input type="checkbox" id="dayWorkToggle">
+          <span>근무일</span>
+        </label>
+        <div class="time-row" id="dayTimeFields">
+          <div class="input-group">
+            <label for="dayStartTime">출근 (24h)</label>
+            <input type="text" class="time-input-24" id="dayStartTime" placeholder="09:00" inputmode="numeric" maxlength="5" autocomplete="off">
+          </div>
+          <span class="time-sep">~</span>
+          <div class="input-group">
+            <label for="dayEndTime">퇴근 (24h)</label>
+            <input type="text" class="time-input-24" id="dayEndTime" placeholder="18:00" inputmode="numeric" maxlength="5" autocomplete="off">
+          </div>
+        </div>
+        <div class="input-group" id="dayBreakField">
+          <label for="dayBreakMinutes">휴게 (분)</label>
+          <input type="number" id="dayBreakMinutes" min="0" step="5" inputmode="numeric">
+        </div>
+        <div class="input-group">
+          <label for="dayCustomHours">근무시간 직접 입력 (시간, 비우면 자동)</label>
+          <input type="number" id="dayCustomHours" min="0" max="24" step="0.5" placeholder="자동 계산" inputmode="decimal">
+        </div>
+        <div class="input-group">
+          <label for="dayMemo">메모 (대타/조퇴/지각 등)</label>
+          <input type="text" id="dayMemo" placeholder="메모 입력">
+        </div>
+        <p class="hint" id="dayCalcHint"></p>
+      </section>
+
+      <!-- 월별 통계 -->
+      <section class="card stats-section" aria-live="polite">
+        <h2 class="section-title">월별 통계</h2>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">총 근무일</span>
+            <span class="stat-value" id="statWorkDays">0일</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 근무시간</span>
+            <span class="stat-value" id="statTotalHours">0시간</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">야간시간</span>
+            <span class="stat-value" id="statNightHours">0시간</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">연장시간</span>
+            <span class="stat-value" id="statOvertimeHours">0시간</span>
+          </div>
+        </div>
+
+        <div class="tax-options">
+          <span class="tax-label">세금 적용</span>
+          <div class="tax-radio-group">
+            <label class="tax-radio">
+              <input type="radio" name="taxMode" value="none" checked>
+              <span>미적용</span>
+            </label>
+            <label class="tax-radio">
+              <input type="radio" name="taxMode" value="insurance">
+              <span>4대보험 9.7174%</span>
+            </label>
+            <label class="tax-radio">
+              <input type="radio" name="taxMode" value="income">
+              <span>소득세 3.3%</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pay-breakdown">
+          <div class="pay-row">
+            <span>기본급</span>
+            <span id="payBase">0원</span>
+          </div>
+          <div class="pay-row">
+            <span>야간수당</span>
+            <span id="payNight">0원</span>
+          </div>
+          <div class="pay-row">
+            <span>연장수당</span>
+            <span id="payOvertime">0원</span>
+          </div>
+          <div class="pay-row">
+            <span>주휴수당</span>
+            <span id="payWeeklyHoliday">0원</span>
+          </div>
+          <div class="pay-row">
+            <span>휴일수당</span>
+            <span id="payHoliday">0원</span>
+          </div>
+          <div class="pay-row total">
+            <span>총 급여</span>
+            <span id="payTotal">0원</span>
+          </div>
+          <div class="pay-row net">
+            <span>예상 실수령액</span>
+            <span id="payNet">0원</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section id="tabEmployee" class="tab-panel" role="tabpanel" aria-labelledby="tabBtnEmployee" hidden>
+      <div class="coming-soon card">
+        <span class="coming-soon-icon" aria-hidden="true">🚧</span>
+        <h2>준비 중</h2>
+        <p>직장인 급여 계산 기능은 곧 제공될 예정입니다.</p>
+      </div>
+    </section>
+
+    <section class="card feedback-section" id="feedbackSection">
+      <h2 class="section-title">피드백 게시판</h2>
+      <p class="feedback-desc">버그 제보, 기능 제안, 사용 후기를 남겨주세요.</p>
+      <form id="feedbackForm" class="feedback-form">
+        <div class="input-group">
+          <label for="feedbackAuthor">이름 (선택)</label>
+          <input type="text" id="feedbackAuthor" maxlength="20" placeholder="익명">
+        </div>
+        <div class="input-group">
+          <label for="feedbackMessage">내용</label>
+          <textarea id="feedbackMessage" rows="3" maxlength="500" placeholder="건의사항이나 버그 제보를 입력해 주세요" required></textarea>
+        </div>
+        <button type="submit" class="feedback-submit">등록</button>
+      </form>
+      <ul class="feedback-list" id="feedbackList" aria-live="polite"></ul>
+      <p class="hint feedback-note">피드백은 이 기기에만 저장됩니다.</p>
+    </section>
+
+    <footer id="appFooter">
+      <p>야간 22:00~06:00 · 연장 8h 초과 · 공휴일·주휴 1.5배 · 주 15h 이상 주휴수당</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
