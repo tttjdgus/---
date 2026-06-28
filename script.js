@@ -1317,78 +1317,88 @@ function init() {
   initEmployee();
   initTabs();
   initFeedback();
+  initLegalModals();
   renderCalendar();
+}
+
+function getModalType(modalId) {
+  return modalId.replace(/Modal$/, '');
+}
+
+function isDontShow(type) {
+  try {
+    return localStorage.getItem('dontShow_' + type) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function setDontShow(type, value) {
+  try {
+    if (value) {
+      localStorage.setItem('dontShow_' + type, 'true');
+    } else {
+      localStorage.removeItem('dontShow_' + type);
+    }
+  } catch (e) {}
 }
 
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) {
-    const type = modalId.replace(/Modal$/, '');
-    const checkbox = modal.querySelector('.modal-dont-checkbox');
-    if (checkbox) {
-      checkbox.checked = !!localStorage.getItem('dontShow_' + type);
-    }
-    modal.hidden = false;
-    modal.style.display = 'flex';
+  if (!modal) return;
+
+  const type = getModalType(modalId);
+  if (isDontShow(type)) return;
+
+  const checkbox = modal.querySelector('.modal-dont-checkbox');
+  if (checkbox) {
+    checkbox.checked = isDontShow(type);
   }
+  modal.hidden = false;
 }
 
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) {
-    // if modal has a dont-show checkbox, persist when checked
-    const type = modalId.replace(/Modal$/, '');
-    const checkbox = modal.querySelector('.modal-dont-checkbox');
-    if (checkbox && checkbox.checked) {
-      try { localStorage.setItem('dontShow_' + type, 'true'); } catch (e) {}
-    }
-    modal.hidden = true;
-    modal.style.display = 'none';
-  }
-}
-
-function dontShowAgain(type) {
-  localStorage.setItem('dontShow_' + type, 'true');
-  const modalId = type + 'Modal';
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.hidden = true;
-    modal.style.display = 'none';
-  }
-}
-
-document.querySelectorAll('.modal').forEach(modal => {
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) { closeModal(modal.id); }
-  });
-});
-
-document.querySelectorAll('.modal-dont-checkbox').forEach(checkbox => {
-  const modal = checkbox.closest('.modal');
   if (!modal) return;
-  const type = modal.id.replace(/Modal$/, '');
-  checkbox.addEventListener('change', () => {
-    try {
-      if (checkbox.checked) {
-        localStorage.setItem('dontShow_' + type, 'true');
-      } else {
-        localStorage.removeItem('dontShow_' + type);
-      }
-    } catch (e) {}
-  });
-});
 
-document.querySelectorAll('.legal-link').forEach(link => {
-  link.addEventListener('click', (e) => {
-    e.preventDefault();
-    const href = link.getAttribute('href');
-    const type = href === '#privacy' ? 'privacy' : 'terms';
-    const modalId = type + 'Modal';
-    if (localStorage.getItem('dontShow_' + type) === 'true') {
-      return;
-    }
-    openModal(modalId);
+  const type = getModalType(modalId);
+  const checkbox = modal.querySelector('.modal-dont-checkbox');
+  if (checkbox && checkbox.checked) {
+    setDontShow(type, true);
+  }
+  modal.hidden = true;
+}
+
+function initLegalModals() {
+  document.querySelectorAll('.modal').forEach((modal) => {
+    modal.hidden = true;
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal(modal.id);
+      }
+    });
   });
-});
+
+  document.querySelectorAll('.modal-dont-checkbox').forEach((checkbox) => {
+    const modal = checkbox.closest('.modal');
+    if (!modal) return;
+
+    const type = getModalType(modal.id);
+    checkbox.addEventListener('change', () => {
+      setDontShow(type, checkbox.checked);
+    });
+  });
+
+  document.querySelectorAll('.legal-link').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = link.getAttribute('href');
+      const type = href === '#privacy' ? 'privacy' : 'terms';
+      if (isDontShow(type)) return;
+      openModal(type + 'Modal');
+    });
+  });
+}
 
 init();
