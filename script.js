@@ -587,44 +587,30 @@ function buildPdfElement() {
 }
 
 function downloadPdf() {
-  if (typeof html2pdf === "undefined") {
-    alert("PDF 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.");
+  const activeJobId = state.activeJobId;
+  if (!activeJobId) {
+    alert("알바를 선택해주세요");
     return;
   }
-
-  readSettingsFromUI();
-  const settings = getSettings();
-  const { viewYear, viewMonth } = state;
-  const filename =
-    viewYear + "년" + (viewMonth + 1) + "월_" +
-    sanitizeFilename(settings.name) + "_급여명세서.pdf";
-
-  const element = buildPdfElement();
-  document.body.appendChild(element);
-  els.pdfDownloadBtn.disabled = true;
-  els.pdfDownloadBtn.textContent = "PDF 생성 중…";
-
-  html2pdf()
-    .set({
-      margin: [10, 10, 10, 10],
-      filename,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    })
-    .from(element)
-    .save()
-    .then(() => {
-      document.body.removeChild(element);
-    })
-    .catch(() => {
-      document.body.removeChild(element);
-      alert("PDF 생성에 실패했습니다. 다시 시도해 주세요.");
-    })
-    .finally(() => {
-      els.pdfDownloadBtn.disabled = false;
-      els.pdfDownloadBtn.textContent = "PDF 다운로드";
-    });
+  
+  const job = state.jobs.find(j => j.id === activeJobId);
+  if (!job) return;
+  
+  const year = state.viewYear;
+  const month = state.viewMonth + 1;
+  const monthStr = String(month).padStart(2, "0");
+  const filename = `${year}년${monthStr}월_${job.settings.name}_급여명세서.pdf`;
+  
+  const element = document.querySelector(".stats-section");
+  const opt = {
+    margin: 10,
+    filename: filename,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: "portrait", unit: "mm", format: "a4" }
+  };
+  
+  html2pdf().set(opt).from(element).save();
 }
 
 function calcMonthStatsForJob(job) {
@@ -1417,6 +1403,10 @@ function initTabs() {
     tabParttime.hidden = tab !== "parttime";
     tabEmployee.classList.toggle("active", tab === "employee");
     tabEmployee.hidden = tab !== "employee";
+    
+    if (tab === "employee") {
+      setTimeout(() => updateEmployeeCalculation(), 100);
+    }
 
     localStorage.setItem("activeTab", tab);
   }
