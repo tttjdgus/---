@@ -1349,7 +1349,12 @@ function closeModal(modalId) {
 
 function dontShowAgain(type) {
   localStorage.setItem('dontShow_' + type, 'true');
-  closeModal(type + 'Modal');
+  const modalId = type + 'Modal';
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.hidden = true;
+    modal.style.display = 'none';
+  }
 }
 
 document.querySelectorAll('.modal').forEach(modal => {
@@ -1362,11 +1367,13 @@ document.querySelectorAll('.legal-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     const href = link.getAttribute('href');
-    if (href === '#privacy') {
-      if (!localStorage.getItem('dontShow_privacy')) openModal('privacyModal');
-    } else if (href === '#terms') {
-      if (!localStorage.getItem('dontShow_terms')) openModal('termsModal');
+    const type = href === '#privacy' ? 'privacy' : 'terms';
+    const modalId = type + 'Modal';
+    if (localStorage.getItem('dontShow_' + type) === 'true') {
+      alert('이전에 "다시 보지 않기"를 선택하셨습니다. 브라우저 설정에서 localStorage를 초기화하면 다시 볼 수 있습니다.');
+      return;
     }
+    openModal(modalId);
   });
 });
 
