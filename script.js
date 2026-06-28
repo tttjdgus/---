@@ -1321,43 +1321,52 @@ function init() {
   renderCalendar();
 }
 
-// 정책 동의 확인
-function isPolicyAccepted() {
+// 정책 동의 확인 (개별: privacy, terms)
+function isPolicyAccepted(type) {
   try {
-    return localStorage.getItem('policyAccepted') === 'true';
+    return localStorage.getItem(type + 'Accepted') === 'true';
   } catch (e) {
     return false;
   }
 }
 
-// 정책 동의 저장
-function setPolicyAccepted() {
+// 정책 동의 저장 (개별)
+function setPolicyAccepted(type) {
   try {
-    localStorage.setItem('policyAccepted', 'true');
+    localStorage.setItem(type + 'Accepted', 'true');
   } catch (e) {}
+}
+
+// 모달 타입 추출 (privacyModal → privacy, termsModal → terms)
+function getModalType(modalId) {
+  return modalId.replace(/Modal$/, '');
 }
 
 // 모달 열기
 // isAutoOpen: true = 자동 오픈 (다시보지않기 표시), false = 수동 오픈 (다시보지않기 숨김)
-function openModal(modalId, options = {}) {
-  const { showDontShow = false } = options;
+function openPolicyModal(modalId, isAutoOpen) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
 
   const type = getModalType(modalId);
-  if (showDontShow && isDontShow(type)) return;
+
+  // 자동 오픈 시 이미 동의했으면 열지 않음
+  if (isAutoOpen && isPolicyAccepted(type)) return;
 
   // 다시보지않기 버튼 표시/숨김
   const footer = modal.querySelector('.modal-footer');
   if (footer) {
-    footer.hidden = !showDontShow;
-  }
-  const checkbox = modal.querySelector('.modal-dont-checkbox');
-  if (checkbox) {
-    checkbox.checked = showDontShow && isDontShow(type);
+    footer.hidden = !isAutoOpen;
   }
 
-  modal.dataset.autoShow = showDontShow ? 'true' : 'false';
+  // 체크박스 초기화
+  const checkbox = modal.querySelector('.modal-dont-checkbox');
+  if (checkbox) {
+    checkbox.checked = false;
+  }
+
+  // 자동 오픈 여부 저장
+  modal.dataset.isAutoOpen = isAutoOpen ? 'true' : 'false';
   modal.hidden = false;
 }
 
@@ -1367,30 +1376,37 @@ function closeModal(modalId) {
   if (!modal) return;
 
   const type = getModalType(modalId);
-  const isAutoShow = modal.dataset.autoShow === 'true';
+  const isAutoOpen = modal.dataset.isAutoOpen === 'true';
 
-  if (isAutoShow) {
+  // 자동 오픈 모드에서 체크박스 체크 시 localStorage 저장
+  if (isAutoOpen) {
     const checkbox = modal.querySelector('.modal-dont-checkbox');
     if (checkbox && checkbox.checked) {
-      setDontShow(type, true);
+      setPolicyAccepted(type);
     }
   }
 
   modal.hidden = true;
-  delete modal.dataset.autoShow;
+  delete modal.dataset.isAutoOpen;
 
-  if (isAutoShow && type === 'privacy' && !isDontShow('terms')) {
-    openModal('termsModal', { showDontShow: true });
+  // 자동 오픈 모드에서 개인정보처리방침 닫으면 이용약관 자동 표시 (이용약관 미동의 시)
+  if (isAutoOpen && type === 'privacy' && !isPolicyAccepted('terms')) {
+    setTimeout(() => {
+      openPolicyModal('termsModal', true);
+    }, 200);
   }
 }
 
-function showFirstVisitLegalModals() {
-  if (!isDontShow('privacy')) {
-    openModal('privacyModal', { showDontShow: true });
-  } else if (!isDontShow('terms')) {
-    openModal('termsModal', { showDontShow: true });
+// 첫 방문 시 자동 팝업
+function showFirstVisitPolicyModals() {
+  if (!isPolicyAccepted('privacy')) {
+    openPolicyModal('privacyModal', true);
+  } else if (!isPolicyAccepted('terms')) {
+    openPolicyModal('termsModal', true);
   }
 }
+
+// 법적 정보 모달 초기화
 function initLegalModals() {
   // 모든 모달 숨김 처리
   document.querySelectorAll('.modal').forEach((modal) => {
@@ -1407,8 +1423,12 @@ function initLegalModals() {
   // 체크박스 변경 시 즉시 저장 (자동 오픈 모드에서만)
   document.querySelectorAll('.modal-dont-checkbox').forEach((checkbox) => {
     checkbox.addEventListener('change', () => {
-      if (modal.dataset.autoShow === 'true') {
-        setDontShow(type, checkbox.checked);
+      const modal = checkbox.closest('.modal');
+      if (modal && modal.dataset.isAutoOpen === 'true') {
+        const type = getModalType(modal.id);
+        if (checkbox.checked) {
+          setPolicyAccepted(type);
+        }
       }
     });
   });
@@ -1418,12 +1438,13 @@ function initLegalModals() {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       const href = link.getAttribute('href');
-      const type = href === '#privacy' ? 'privacy' : 'terms';
-      openModal(type + 'Modal', { showDontShow: false });
+      const modalId = href === '#privacy' ? 'privacyModal' : 'termsModal';
+      openPolicyModal(modalId, false);
     });
   });
 
-  showFirstVisitLegalModals();
+  // 첫 방문 시 자동 팝업 표시
+  showFirstVisitPolicyModals();
 }
 
 init();
